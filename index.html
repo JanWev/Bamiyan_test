@@ -1,0 +1,2533 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Bamiyan - UNSECO Cultural Master Plan</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/Urban_Development_Area_0.js"></script>
+        <script src="data/Restricted_Development_Area_1.js"></script>
+        <script src="data/Public_Development_Area_2.js"></script>
+        <script src="data/Pasture_Protection_Area_3.js"></script>
+        <script src="data/Natural_Hazard_Flood_Area_4.js"></script>
+        <script src="data/Afforestation_Area_5.js"></script>
+        <script src="data/Rivers_6.js"></script>
+        <script src="data/Canals_7.js"></script>
+        <script src="data/Traditional_Settlements_8.js"></script>
+        <script src="data/Religious_Buildings_9.js"></script>
+        <script src="data/Monuments_10.js"></script>
+        <script src="data/Cemetery_11.js"></script>
+        <script src="data/Monument_Walls_12.js"></script>
+        <script src="data/Religious_Building_Points_13.js"></script>
+        <script src="data/Historic_Mausoleums_14.js"></script>
+        <script src="data/Historic_Cemetery_15.js"></script>
+        <script src="data/Caves_16.js"></script>
+        <script src="data/Archaeological_Remains_17.js"></script>
+        <script src="data/Archaeological_Area_18.js"></script>
+        <script src="data/World_Heritage_Property_Area_19.js"></script>
+        <script src="data/World_Heritage_Buffer_Outline_20.js"></script>
+        <script src="data/World_Heritage_Buffer_Area_21.js"></script>
+        <script src="data/World_Heritage_Site_Benchmarks_22.js"></script>
+        <script src="data/World_Heritage_Site_Benchmarks_Annotations_23.js"></script>
+        <script src="data/Regulated_Development_Area_Annotation_24.js"></script>
+        <script src="data/National_Monument_Protection_Zone_Annotations_25.js"></script>
+        <script src="data/Archaeological_Area_Annotations_26.js"></script>
+        <script src="data/World_Heritage_Property_Annotations_27.js"></script>
+        <script src="data/World_Heritage_Property_ID_Annotations_28.js"></script>
+        <script src="data/Grid_Information_29.js"></script>
+        <script src="data/Grid_30.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[34.79474558635234,67.8141886085844],[34.83561511607285,67.88873419333618]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>Bamiyan - UNSECO Cultural Master Plan</h2>';
+        };
+        title.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        function pop_Urban_Development_Area_0(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Urban_Development_Area_0_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.1,
+            color: '#f7f146',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 315
+        });
+        pattern_Urban_Development_Area_0_0.addTo(map);
+        function style_Urban_Development_Area_0_0() {
+            return {
+                pane: 'pane_Urban_Development_Area_0',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Urban_Development_Area_0_0,
+                interactive: true,
+            }
+        }
+        function style_Urban_Development_Area_0_1() {
+            return {
+                pane: 'pane_Urban_Development_Area_0',
+                opacity: 1,
+                color: 'rgba(247,241,70,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Urban_Development_Area_0');
+        map.getPane('pane_Urban_Development_Area_0').style.zIndex = 400;
+        map.getPane('pane_Urban_Development_Area_0').style['mix-blend-mode'] = 'normal';
+        var layer_Urban_Development_Area_0 = new L.geoJson.multiStyle(json_Urban_Development_Area_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Urban_Development_Area_0',
+            layerName: 'layer_Urban_Development_Area_0',
+            pane: 'pane_Urban_Development_Area_0',
+            onEachFeature: pop_Urban_Development_Area_0,
+            styles: [style_Urban_Development_Area_0_0,style_Urban_Development_Area_0_1,]
+        });
+        bounds_group.addLayer(layer_Urban_Development_Area_0);
+        map.addLayer(layer_Urban_Development_Area_0);
+        function pop_Restricted_Development_Area_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Restricted_Development_Area_1_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.1,
+            color: '#f7f146',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 315
+        });
+        pattern_Restricted_Development_Area_1_0.addTo(map);
+        function style_Restricted_Development_Area_1_0() {
+            return {
+                pane: 'pane_Restricted_Development_Area_1',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Restricted_Development_Area_1_0,
+                interactive: true,
+            }
+        }
+        var pattern_Restricted_Development_Area_1_1 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.1,
+            color: '#f7f146',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 225
+        });
+        pattern_Restricted_Development_Area_1_1.addTo(map);
+        function style_Restricted_Development_Area_1_1() {
+            return {
+                pane: 'pane_Restricted_Development_Area_1',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Restricted_Development_Area_1_1,
+                interactive: true,
+            }
+        }
+        function style_Restricted_Development_Area_1_2() {
+            return {
+                pane: 'pane_Restricted_Development_Area_1',
+                opacity: 1,
+                color: 'rgba(247,241,70,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Restricted_Development_Area_1');
+        map.getPane('pane_Restricted_Development_Area_1').style.zIndex = 401;
+        map.getPane('pane_Restricted_Development_Area_1').style['mix-blend-mode'] = 'normal';
+        var layer_Restricted_Development_Area_1 = new L.geoJson.multiStyle(json_Restricted_Development_Area_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Restricted_Development_Area_1',
+            layerName: 'layer_Restricted_Development_Area_1',
+            pane: 'pane_Restricted_Development_Area_1',
+            onEachFeature: pop_Restricted_Development_Area_1,
+            styles: [style_Restricted_Development_Area_1_0,style_Restricted_Development_Area_1_1,style_Restricted_Development_Area_1_2,]
+        });
+        bounds_group.addLayer(layer_Restricted_Development_Area_1);
+        map.addLayer(layer_Restricted_Development_Area_1);
+        function pop_Public_Development_Area_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Public_Development_Area_2_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.1,
+            color: '#f7f146',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 360
+        });
+        pattern_Public_Development_Area_2_0.addTo(map);
+        function style_Public_Development_Area_2_0() {
+            return {
+                pane: 'pane_Public_Development_Area_2',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Public_Development_Area_2_0,
+                interactive: true,
+            }
+        }
+        function style_Public_Development_Area_2_1() {
+            return {
+                pane: 'pane_Public_Development_Area_2',
+                opacity: 1,
+                color: 'rgba(247,241,70,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Public_Development_Area_2');
+        map.getPane('pane_Public_Development_Area_2').style.zIndex = 402;
+        map.getPane('pane_Public_Development_Area_2').style['mix-blend-mode'] = 'normal';
+        var layer_Public_Development_Area_2 = new L.geoJson.multiStyle(json_Public_Development_Area_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Public_Development_Area_2',
+            layerName: 'layer_Public_Development_Area_2',
+            pane: 'pane_Public_Development_Area_2',
+            onEachFeature: pop_Public_Development_Area_2,
+            styles: [style_Public_Development_Area_2_0,style_Public_Development_Area_2_1,]
+        });
+        bounds_group.addLayer(layer_Public_Development_Area_2);
+        map.addLayer(layer_Public_Development_Area_2);
+        function pop_Pasture_Protection_Area_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Pasture_Protection_Area_3_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 2.0,
+            color: '#009000',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 360
+        });
+        pattern_Pasture_Protection_Area_3_0.addTo(map);
+        function style_Pasture_Protection_Area_3_0() {
+            return {
+                pane: 'pane_Pasture_Protection_Area_3',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Pasture_Protection_Area_3_0,
+                interactive: true,
+            }
+        }
+        function style_Pasture_Protection_Area_3_1() {
+            return {
+                pane: 'pane_Pasture_Protection_Area_3',
+                opacity: 1,
+                color: 'rgba(0,144,0,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Pasture_Protection_Area_3');
+        map.getPane('pane_Pasture_Protection_Area_3').style.zIndex = 403;
+        map.getPane('pane_Pasture_Protection_Area_3').style['mix-blend-mode'] = 'normal';
+        var layer_Pasture_Protection_Area_3 = new L.geoJson.multiStyle(json_Pasture_Protection_Area_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Pasture_Protection_Area_3',
+            layerName: 'layer_Pasture_Protection_Area_3',
+            pane: 'pane_Pasture_Protection_Area_3',
+            onEachFeature: pop_Pasture_Protection_Area_3,
+            styles: [style_Pasture_Protection_Area_3_0,style_Pasture_Protection_Area_3_1,]
+        });
+        bounds_group.addLayer(layer_Pasture_Protection_Area_3);
+        map.addLayer(layer_Pasture_Protection_Area_3);
+        function pop_Natural_Hazard_Flood_Area_4(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Natural_Hazard_Flood_Area_4_0 = new L.StripePattern({
+            weight: 0.7,
+            spaceWeight: 2.5,
+            color: '#01ff1f',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 135
+        });
+        pattern_Natural_Hazard_Flood_Area_4_0.addTo(map);
+        function style_Natural_Hazard_Flood_Area_4_0() {
+            return {
+                pane: 'pane_Natural_Hazard_Flood_Area_4',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Natural_Hazard_Flood_Area_4_0,
+                interactive: true,
+            }
+        }
+        var pattern_Natural_Hazard_Flood_Area_4_1 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 2.5,
+            color: '#007808',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 135
+        });
+        pattern_Natural_Hazard_Flood_Area_4_1.addTo(map);
+        function style_Natural_Hazard_Flood_Area_4_1() {
+            return {
+                pane: 'pane_Natural_Hazard_Flood_Area_4',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Natural_Hazard_Flood_Area_4_1,
+                interactive: true,
+            }
+        }
+        function style_Natural_Hazard_Flood_Area_4_2() {
+            return {
+                pane: 'pane_Natural_Hazard_Flood_Area_4',
+                opacity: 1,
+                color: 'rgba(9,255,1,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Natural_Hazard_Flood_Area_4');
+        map.getPane('pane_Natural_Hazard_Flood_Area_4').style.zIndex = 404;
+        map.getPane('pane_Natural_Hazard_Flood_Area_4').style['mix-blend-mode'] = 'normal';
+        var layer_Natural_Hazard_Flood_Area_4 = new L.geoJson.multiStyle(json_Natural_Hazard_Flood_Area_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Natural_Hazard_Flood_Area_4',
+            layerName: 'layer_Natural_Hazard_Flood_Area_4',
+            pane: 'pane_Natural_Hazard_Flood_Area_4',
+            onEachFeature: pop_Natural_Hazard_Flood_Area_4,
+            styles: [style_Natural_Hazard_Flood_Area_4_0,style_Natural_Hazard_Flood_Area_4_1,style_Natural_Hazard_Flood_Area_4_2,]
+        });
+        bounds_group.addLayer(layer_Natural_Hazard_Flood_Area_4);
+        map.addLayer(layer_Natural_Hazard_Flood_Area_4);
+        function pop_Afforestation_Area_5(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Afforestation_Area_5_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 2.0,
+            color: '#67e167',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 270
+        });
+        pattern_Afforestation_Area_5_0.addTo(map);
+        function style_Afforestation_Area_5_0() {
+            return {
+                pane: 'pane_Afforestation_Area_5',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Afforestation_Area_5_0,
+                interactive: true,
+            }
+        }
+        function style_Afforestation_Area_5_1() {
+            return {
+                pane: 'pane_Afforestation_Area_5',
+                opacity: 1,
+                color: 'rgba(103,225,103,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Afforestation_Area_5');
+        map.getPane('pane_Afforestation_Area_5').style.zIndex = 405;
+        map.getPane('pane_Afforestation_Area_5').style['mix-blend-mode'] = 'normal';
+        var layer_Afforestation_Area_5 = new L.geoJson.multiStyle(json_Afforestation_Area_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Afforestation_Area_5',
+            layerName: 'layer_Afforestation_Area_5',
+            pane: 'pane_Afforestation_Area_5',
+            onEachFeature: pop_Afforestation_Area_5,
+            styles: [style_Afforestation_Area_5_0,style_Afforestation_Area_5_1,]
+        });
+        bounds_group.addLayer(layer_Afforestation_Area_5);
+        map.addLayer(layer_Afforestation_Area_5);
+        function pop_Rivers_6(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Rivers_6_0() {
+            return {
+                pane: 'pane_Rivers_6',
+                opacity: 1,
+                color: 'rgba(1,196,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,173,220,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Rivers_6');
+        map.getPane('pane_Rivers_6').style.zIndex = 406;
+        map.getPane('pane_Rivers_6').style['mix-blend-mode'] = 'normal';
+        var layer_Rivers_6 = new L.geoJson(json_Rivers_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Rivers_6',
+            layerName: 'layer_Rivers_6',
+            pane: 'pane_Rivers_6',
+            onEachFeature: pop_Rivers_6,
+            style: style_Rivers_6_0,
+        });
+        bounds_group.addLayer(layer_Rivers_6);
+        map.addLayer(layer_Rivers_6);
+        function pop_Canals_7(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Canals_7_0() {
+            return {
+                pane: 'pane_Canals_7',
+                opacity: 1,
+                color: 'rgba(1,200,255,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Canals_7');
+        map.getPane('pane_Canals_7').style.zIndex = 407;
+        map.getPane('pane_Canals_7').style['mix-blend-mode'] = 'normal';
+        var layer_Canals_7 = new L.geoJson(json_Canals_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Canals_7',
+            layerName: 'layer_Canals_7',
+            pane: 'pane_Canals_7',
+            onEachFeature: pop_Canals_7,
+            style: style_Canals_7_0,
+        });
+        bounds_group.addLayer(layer_Canals_7);
+        map.addLayer(layer_Canals_7);
+        function pop_Traditional_Settlements_8(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Traditional_Settlements_8_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.0,
+            color: '#ff8003',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 360
+        });
+        pattern_Traditional_Settlements_8_0.addTo(map);
+        function style_Traditional_Settlements_8_0() {
+            return {
+                pane: 'pane_Traditional_Settlements_8',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Traditional_Settlements_8_0,
+                interactive: true,
+            }
+        }
+        function style_Traditional_Settlements_8_1() {
+            return {
+                pane: 'pane_Traditional_Settlements_8',
+                opacity: 1,
+                color: 'rgba(255,128,3,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Traditional_Settlements_8');
+        map.getPane('pane_Traditional_Settlements_8').style.zIndex = 408;
+        map.getPane('pane_Traditional_Settlements_8').style['mix-blend-mode'] = 'normal';
+        var layer_Traditional_Settlements_8 = new L.geoJson.multiStyle(json_Traditional_Settlements_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Traditional_Settlements_8',
+            layerName: 'layer_Traditional_Settlements_8',
+            pane: 'pane_Traditional_Settlements_8',
+            onEachFeature: pop_Traditional_Settlements_8,
+            styles: [style_Traditional_Settlements_8_0,style_Traditional_Settlements_8_1,]
+        });
+        bounds_group.addLayer(layer_Traditional_Settlements_8);
+        map.addLayer(layer_Traditional_Settlements_8);
+        function pop_Religious_Buildings_9(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Religious_Buildings_9_0() {
+            return {
+                pane: 'pane_Religious_Buildings_9',
+                opacity: 1,
+                color: 'rgba(255,128,3,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Religious_Buildings_9');
+        map.getPane('pane_Religious_Buildings_9').style.zIndex = 409;
+        map.getPane('pane_Religious_Buildings_9').style['mix-blend-mode'] = 'normal';
+        var layer_Religious_Buildings_9 = new L.geoJson(json_Religious_Buildings_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Religious_Buildings_9',
+            layerName: 'layer_Religious_Buildings_9',
+            pane: 'pane_Religious_Buildings_9',
+            onEachFeature: pop_Religious_Buildings_9,
+            style: style_Religious_Buildings_9_0,
+        });
+        bounds_group.addLayer(layer_Religious_Buildings_9);
+        map.addLayer(layer_Religious_Buildings_9);
+        function pop_Monuments_10(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Monuments_10_0() {
+            return {
+                pane: 'pane_Monuments_10',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,128,3,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Monuments_10');
+        map.getPane('pane_Monuments_10').style.zIndex = 410;
+        map.getPane('pane_Monuments_10').style['mix-blend-mode'] = 'normal';
+        var layer_Monuments_10 = new L.geoJson(json_Monuments_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Monuments_10',
+            layerName: 'layer_Monuments_10',
+            pane: 'pane_Monuments_10',
+            onEachFeature: pop_Monuments_10,
+            style: style_Monuments_10_0,
+        });
+        bounds_group.addLayer(layer_Monuments_10);
+        map.addLayer(layer_Monuments_10);
+        function pop_Cemetery_11(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Cemetery_11_0() {
+            return {
+                pane: 'pane_Cemetery_11',
+                interactive: true,
+            }
+        }
+        function style_Cemetery_11_1() {
+            return {
+                pane: 'pane_Cemetery_11',
+                opacity: 1,
+                color: 'rgba(255,128,3,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Cemetery_11');
+        map.getPane('pane_Cemetery_11').style.zIndex = 411;
+        map.getPane('pane_Cemetery_11').style['mix-blend-mode'] = 'normal';
+        var layer_Cemetery_11 = new L.geoJson.multiStyle(json_Cemetery_11, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Cemetery_11',
+            layerName: 'layer_Cemetery_11',
+            pane: 'pane_Cemetery_11',
+            onEachFeature: pop_Cemetery_11,
+            styles: [style_Cemetery_11_0,style_Cemetery_11_1,]
+        });
+        bounds_group.addLayer(layer_Cemetery_11);
+        map.addLayer(layer_Cemetery_11);
+        function pop_Monument_Walls_12(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Monument_Walls_12_0() {
+            return {
+                pane: 'pane_Monument_Walls_12',
+                opacity: 1,
+                color: 'rgba(255,128,3,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Monument_Walls_12');
+        map.getPane('pane_Monument_Walls_12').style.zIndex = 412;
+        map.getPane('pane_Monument_Walls_12').style['mix-blend-mode'] = 'normal';
+        var layer_Monument_Walls_12 = new L.geoJson(json_Monument_Walls_12, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Monument_Walls_12',
+            layerName: 'layer_Monument_Walls_12',
+            pane: 'pane_Monument_Walls_12',
+            onEachFeature: pop_Monument_Walls_12,
+            style: style_Monument_Walls_12_0,
+        });
+        bounds_group.addLayer(layer_Monument_Walls_12);
+        map.addLayer(layer_Monument_Walls_12);
+        function pop_Religious_Building_Points_13(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Religious_Building_Points_13_0() {
+            return {
+                pane: 'pane_Religious_Building_Points_13',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Religious_Building_Points_13');
+        map.getPane('pane_Religious_Building_Points_13').style.zIndex = 413;
+        map.getPane('pane_Religious_Building_Points_13').style['mix-blend-mode'] = 'normal';
+        var layer_Religious_Building_Points_13 = new L.geoJson(json_Religious_Building_Points_13, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Religious_Building_Points_13',
+            layerName: 'layer_Religious_Building_Points_13',
+            pane: 'pane_Religious_Building_Points_13',
+            onEachFeature: pop_Religious_Building_Points_13,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Religious_Building_Points_13_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Religious_Building_Points_13);
+        map.addLayer(layer_Religious_Building_Points_13);
+        function pop_Historic_Mausoleums_14(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Historic_Mausoleums_14_0() {
+            return {
+                pane: 'pane_Historic_Mausoleums_14',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(44,132,255,0.696)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Historic_Mausoleums_14');
+        map.getPane('pane_Historic_Mausoleums_14').style.zIndex = 414;
+        map.getPane('pane_Historic_Mausoleums_14').style['mix-blend-mode'] = 'normal';
+        var layer_Historic_Mausoleums_14 = new L.geoJson(json_Historic_Mausoleums_14, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Historic_Mausoleums_14',
+            layerName: 'layer_Historic_Mausoleums_14',
+            pane: 'pane_Historic_Mausoleums_14',
+            onEachFeature: pop_Historic_Mausoleums_14,
+            style: style_Historic_Mausoleums_14_0,
+        });
+        bounds_group.addLayer(layer_Historic_Mausoleums_14);
+        map.addLayer(layer_Historic_Mausoleums_14);
+        function pop_Historic_Cemetery_15(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Historic_Cemetery_15_0() {
+            return {
+                pane: 'pane_Historic_Cemetery_15',
+                interactive: true,
+            }
+        }
+        function style_Historic_Cemetery_15_1() {
+            return {
+                pane: 'pane_Historic_Cemetery_15',
+                opacity: 1,
+                color: 'rgba(44,132,255,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Historic_Cemetery_15');
+        map.getPane('pane_Historic_Cemetery_15').style.zIndex = 415;
+        map.getPane('pane_Historic_Cemetery_15').style['mix-blend-mode'] = 'normal';
+        var layer_Historic_Cemetery_15 = new L.geoJson.multiStyle(json_Historic_Cemetery_15, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Historic_Cemetery_15',
+            layerName: 'layer_Historic_Cemetery_15',
+            pane: 'pane_Historic_Cemetery_15',
+            onEachFeature: pop_Historic_Cemetery_15,
+            styles: [style_Historic_Cemetery_15_0,style_Historic_Cemetery_15_1,]
+        });
+        bounds_group.addLayer(layer_Historic_Cemetery_15);
+        map.addLayer(layer_Historic_Cemetery_15);
+        function pop_Caves_16(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Caves_16_0() {
+            return {
+                pane: 'pane_Caves_16',
+                interactive: true,
+            }
+        }
+        function style_Caves_16_1() {
+            return {
+                pane: 'pane_Caves_16',
+                opacity: 1,
+                color: 'rgba(44,132,255,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Caves_16');
+        map.getPane('pane_Caves_16').style.zIndex = 416;
+        map.getPane('pane_Caves_16').style['mix-blend-mode'] = 'normal';
+        var layer_Caves_16 = new L.geoJson.multiStyle(json_Caves_16, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Caves_16',
+            layerName: 'layer_Caves_16',
+            pane: 'pane_Caves_16',
+            onEachFeature: pop_Caves_16,
+            styles: [style_Caves_16_0,style_Caves_16_1,]
+        });
+        bounds_group.addLayer(layer_Caves_16);
+        map.addLayer(layer_Caves_16);
+        function pop_Archaeological_Remains_17(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        var pattern_Archaeological_Remains_17_0 = new L.StripePattern({
+            weight: 0.25,
+            spaceWeight: 1.1,
+            color: '#2c84ff',
+            opacity: 1.0,
+            spaceOpacity: 0,
+            angle: 270
+        });
+        pattern_Archaeological_Remains_17_0.addTo(map);
+        function style_Archaeological_Remains_17_0() {
+            return {
+                pane: 'pane_Archaeological_Remains_17',
+                stroke: false,
+                fillOpacity: 1,
+                fillPattern: pattern_Archaeological_Remains_17_0,
+                interactive: true,
+            }
+        }
+        function style_Archaeological_Remains_17_1() {
+            return {
+                pane: 'pane_Archaeological_Remains_17',
+                opacity: 1,
+                color: 'rgba(44,132,255,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Archaeological_Remains_17');
+        map.getPane('pane_Archaeological_Remains_17').style.zIndex = 417;
+        map.getPane('pane_Archaeological_Remains_17').style['mix-blend-mode'] = 'normal';
+        var layer_Archaeological_Remains_17 = new L.geoJson.multiStyle(json_Archaeological_Remains_17, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Archaeological_Remains_17',
+            layerName: 'layer_Archaeological_Remains_17',
+            pane: 'pane_Archaeological_Remains_17',
+            onEachFeature: pop_Archaeological_Remains_17,
+            styles: [style_Archaeological_Remains_17_0,style_Archaeological_Remains_17_1,]
+        });
+        bounds_group.addLayer(layer_Archaeological_Remains_17);
+        map.addLayer(layer_Archaeological_Remains_17);
+        function pop_Archaeological_Area_18(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Archaeological_Area_18_0() {
+            return {
+                pane: 'pane_Archaeological_Area_18',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,1,230,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Archaeological_Area_18');
+        map.getPane('pane_Archaeological_Area_18').style.zIndex = 418;
+        map.getPane('pane_Archaeological_Area_18').style['mix-blend-mode'] = 'normal';
+        var layer_Archaeological_Area_18 = new L.geoJson(json_Archaeological_Area_18, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Archaeological_Area_18',
+            layerName: 'layer_Archaeological_Area_18',
+            pane: 'pane_Archaeological_Area_18',
+            onEachFeature: pop_Archaeological_Area_18,
+            style: style_Archaeological_Area_18_0,
+        });
+        bounds_group.addLayer(layer_Archaeological_Area_18);
+        map.addLayer(layer_Archaeological_Area_18);
+        function pop_World_Heritage_Property_Area_19(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WHS_Area_ID'] !== null ? autolinker.link(feature.properties['WHS_Area_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Area_Name'] !== null ? autolinker.link(feature.properties['Area_Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CP_East'] !== null ? autolinker.link(feature.properties['CP_East'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CP_North'] !== null ? autolinker.link(feature.properties['CP_North'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Property_Area_19_0() {
+            return {
+                pane: 'pane_World_Heritage_Property_Area_19',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(224,0,19,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_World_Heritage_Property_Area_19');
+        map.getPane('pane_World_Heritage_Property_Area_19').style.zIndex = 419;
+        map.getPane('pane_World_Heritage_Property_Area_19').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Property_Area_19 = new L.geoJson(json_World_Heritage_Property_Area_19, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Property_Area_19',
+            layerName: 'layer_World_Heritage_Property_Area_19',
+            pane: 'pane_World_Heritage_Property_Area_19',
+            onEachFeature: pop_World_Heritage_Property_Area_19,
+            style: style_World_Heritage_Property_Area_19_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Property_Area_19);
+        map.addLayer(layer_World_Heritage_Property_Area_19);
+        function pop_World_Heritage_Buffer_Outline_20(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Buffer_Outline_20_0() {
+            return {
+                pane: 'pane_World_Heritage_Buffer_Outline_20',
+                opacity: 1,
+                color: 'rgba(222,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_World_Heritage_Buffer_Outline_20');
+        map.getPane('pane_World_Heritage_Buffer_Outline_20').style.zIndex = 420;
+        map.getPane('pane_World_Heritage_Buffer_Outline_20').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Buffer_Outline_20 = new L.geoJson(json_World_Heritage_Buffer_Outline_20, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Buffer_Outline_20',
+            layerName: 'layer_World_Heritage_Buffer_Outline_20',
+            pane: 'pane_World_Heritage_Buffer_Outline_20',
+            onEachFeature: pop_World_Heritage_Buffer_Outline_20,
+            style: style_World_Heritage_Buffer_Outline_20_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Buffer_Outline_20);
+        map.addLayer(layer_World_Heritage_Buffer_Outline_20);
+        function pop_World_Heritage_Buffer_Area_21(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DocVer'] !== null ? autolinker.link(feature.properties['DocVer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Zone'] !== null ? autolinker.link(feature.properties['Zone'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Buffer_Area_21_0() {
+            return {
+                pane: 'pane_World_Heritage_Buffer_Area_21',
+                opacity: 1,
+                color: 'rgba(222,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_World_Heritage_Buffer_Area_21');
+        map.getPane('pane_World_Heritage_Buffer_Area_21').style.zIndex = 421;
+        map.getPane('pane_World_Heritage_Buffer_Area_21').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Buffer_Area_21 = new L.geoJson(json_World_Heritage_Buffer_Area_21, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Buffer_Area_21',
+            layerName: 'layer_World_Heritage_Buffer_Area_21',
+            pane: 'pane_World_Heritage_Buffer_Area_21',
+            onEachFeature: pop_World_Heritage_Buffer_Area_21,
+            style: style_World_Heritage_Buffer_Area_21_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Buffer_Area_21);
+        map.addLayer(layer_World_Heritage_Buffer_Area_21);
+        function pop_World_Heritage_Site_Benchmarks_22(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['F3'] !== null ? autolinker.link(feature.properties['F3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DEM'] !== null ? autolinker.link(feature.properties['DEM'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['diff'] !== null ? autolinker.link(feature.properties['diff'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Stat_Name'] !== null ? autolinker.link(feature.properties['Stat_Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['N_m_'] !== null ? autolinker.link(feature.properties['N_m_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['E_m_'] !== null ? autolinker.link(feature.properties['E_m_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Elevation_'] !== null ? autolinker.link(feature.properties['Elevation_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['EllipH_m_'] !== null ? autolinker.link(feature.properties['EllipH_m_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Surveyor'] !== null ? autolinker.link(feature.properties['Surveyor'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Site_Benchmarks_22_0() {
+            return {
+                pane: 'pane_World_Heritage_Site_Benchmarks_22',
+                interactive: true,
+            }
+        }
+        function style_World_Heritage_Site_Benchmarks_22_1() {
+            return {
+                pane: 'pane_World_Heritage_Site_Benchmarks_22',
+                radius: 1.6,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,0,0,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_World_Heritage_Site_Benchmarks_22');
+        map.getPane('pane_World_Heritage_Site_Benchmarks_22').style.zIndex = 422;
+        map.getPane('pane_World_Heritage_Site_Benchmarks_22').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Site_Benchmarks_22 = new L.geoJson.multiStyle(json_World_Heritage_Site_Benchmarks_22, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Site_Benchmarks_22',
+            layerName: 'layer_World_Heritage_Site_Benchmarks_22',
+            pane: 'pane_World_Heritage_Site_Benchmarks_22',
+            onEachFeature: pop_World_Heritage_Site_Benchmarks_22,
+            pointToLayers: [function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_World_Heritage_Site_Benchmarks_22_0(feature));
+            },function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_World_Heritage_Site_Benchmarks_22_1(feature));
+            },
+        ]});
+        bounds_group.addLayer(layer_World_Heritage_Site_Benchmarks_22);
+        map.addLayer(layer_World_Heritage_Site_Benchmarks_22);
+        function pop_World_Heritage_Site_Benchmarks_Annotations_23(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Length'] !== null ? autolinker.link(feature.properties['SHAPE_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Site_Benchmarks_Annotations_23_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_World_Heritage_Site_Benchmarks_Annotations_23');
+        map.getPane('pane_World_Heritage_Site_Benchmarks_Annotations_23').style.zIndex = 423;
+        map.getPane('pane_World_Heritage_Site_Benchmarks_Annotations_23').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Site_Benchmarks_Annotations_23 = new L.geoJson(json_World_Heritage_Site_Benchmarks_Annotations_23, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Site_Benchmarks_Annotations_23',
+            layerName: 'layer_World_Heritage_Site_Benchmarks_Annotations_23',
+            pane: 'pane_World_Heritage_Site_Benchmarks_Annotations_23',
+            onEachFeature: pop_World_Heritage_Site_Benchmarks_Annotations_23,
+            style: style_World_Heritage_Site_Benchmarks_Annotations_23_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Site_Benchmarks_Annotations_23);
+        map.addLayer(layer_World_Heritage_Site_Benchmarks_Annotations_23);
+        function pop_Regulated_Development_Area_Annotation_24(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Length'] !== null ? autolinker.link(feature.properties['SHAPE_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Regulated_Development_Area_Annotation_24_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_Regulated_Development_Area_Annotation_24');
+        map.getPane('pane_Regulated_Development_Area_Annotation_24').style.zIndex = 424;
+        map.getPane('pane_Regulated_Development_Area_Annotation_24').style['mix-blend-mode'] = 'normal';
+        var layer_Regulated_Development_Area_Annotation_24 = new L.geoJson(json_Regulated_Development_Area_Annotation_24, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Regulated_Development_Area_Annotation_24',
+            layerName: 'layer_Regulated_Development_Area_Annotation_24',
+            pane: 'pane_Regulated_Development_Area_Annotation_24',
+            onEachFeature: pop_Regulated_Development_Area_Annotation_24,
+            style: style_Regulated_Development_Area_Annotation_24_0,
+        });
+        bounds_group.addLayer(layer_Regulated_Development_Area_Annotation_24);
+        map.addLayer(layer_Regulated_Development_Area_Annotation_24);
+        function pop_National_Monument_Protection_Zone_Annotations_25(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Length'] !== null ? autolinker.link(feature.properties['SHAPE_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_National_Monument_Protection_Zone_Annotations_25_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_National_Monument_Protection_Zone_Annotations_25');
+        map.getPane('pane_National_Monument_Protection_Zone_Annotations_25').style.zIndex = 425;
+        map.getPane('pane_National_Monument_Protection_Zone_Annotations_25').style['mix-blend-mode'] = 'normal';
+        var layer_National_Monument_Protection_Zone_Annotations_25 = new L.geoJson(json_National_Monument_Protection_Zone_Annotations_25, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_National_Monument_Protection_Zone_Annotations_25',
+            layerName: 'layer_National_Monument_Protection_Zone_Annotations_25',
+            pane: 'pane_National_Monument_Protection_Zone_Annotations_25',
+            onEachFeature: pop_National_Monument_Protection_Zone_Annotations_25,
+            style: style_National_Monument_Protection_Zone_Annotations_25_0,
+        });
+        bounds_group.addLayer(layer_National_Monument_Protection_Zone_Annotations_25);
+        map.addLayer(layer_National_Monument_Protection_Zone_Annotations_25);
+        function pop_Archaeological_Area_Annotations_26(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Length'] !== null ? autolinker.link(feature.properties['SHAPE_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Archaeological_Area_Annotations_26_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_Archaeological_Area_Annotations_26');
+        map.getPane('pane_Archaeological_Area_Annotations_26').style.zIndex = 426;
+        map.getPane('pane_Archaeological_Area_Annotations_26').style['mix-blend-mode'] = 'normal';
+        var layer_Archaeological_Area_Annotations_26 = new L.geoJson(json_Archaeological_Area_Annotations_26, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Archaeological_Area_Annotations_26',
+            layerName: 'layer_Archaeological_Area_Annotations_26',
+            pane: 'pane_Archaeological_Area_Annotations_26',
+            onEachFeature: pop_Archaeological_Area_Annotations_26,
+            style: style_Archaeological_Area_Annotations_26_0,
+        });
+        bounds_group.addLayer(layer_Archaeological_Area_Annotations_26);
+        map.addLayer(layer_Archaeological_Area_Annotations_26);
+        function pop_World_Heritage_Property_Annotations_27(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Length'] !== null ? autolinker.link(feature.properties['SHAPE_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(feature.properties['SHAPE_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Property_Annotations_27_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_World_Heritage_Property_Annotations_27');
+        map.getPane('pane_World_Heritage_Property_Annotations_27').style.zIndex = 427;
+        map.getPane('pane_World_Heritage_Property_Annotations_27').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Property_Annotations_27 = new L.geoJson(json_World_Heritage_Property_Annotations_27, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Property_Annotations_27',
+            layerName: 'layer_World_Heritage_Property_Annotations_27',
+            pane: 'pane_World_Heritage_Property_Annotations_27',
+            onEachFeature: pop_World_Heritage_Property_Annotations_27,
+            style: style_World_Heritage_Property_Annotations_27_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Property_Annotations_27);
+        map.addLayer(layer_World_Heritage_Property_Annotations_27);
+        function pop_World_Heritage_Property_ID_Annotations_28(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FeatureID'] !== null ? autolinker.link(feature.properties['FeatureID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ZOrder'] !== null ? autolinker.link(feature.properties['ZOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AnnotationClassID'] !== null ? autolinker.link(feature.properties['AnnotationClassID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Element'] !== null ? autolinker.link(feature.properties['Element'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SymbolID'] !== null ? autolinker.link(feature.properties['SymbolID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Status'] !== null ? autolinker.link(feature.properties['Status'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TextString'] !== null ? autolinker.link(feature.properties['TextString'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontName'] !== null ? autolinker.link(feature.properties['FontName'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontSize'] !== null ? autolinker.link(feature.properties['FontSize'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Bold'] !== null ? autolinker.link(feature.properties['Bold'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Italic'] !== null ? autolinker.link(feature.properties['Italic'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Underline'] !== null ? autolinker.link(feature.properties['Underline'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VerticalAlignment'] !== null ? autolinker.link(feature.properties['VerticalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HorizontalAlignment'] !== null ? autolinker.link(feature.properties['HorizontalAlignment'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['XOffset'] !== null ? autolinker.link(feature.properties['XOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YOffset'] !== null ? autolinker.link(feature.properties['YOffset'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Angle'] !== null ? autolinker.link(feature.properties['Angle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FontLeading'] !== null ? autolinker.link(feature.properties['FontLeading'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WordSpacing'] !== null ? autolinker.link(feature.properties['WordSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterWidth'] !== null ? autolinker.link(feature.properties['CharacterWidth'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CharacterSpacing'] !== null ? autolinker.link(feature.properties['CharacterSpacing'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FlipAngle'] !== null ? autolinker.link(feature.properties['FlipAngle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Override'] !== null ? autolinker.link(feature.properties['Override'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(feature.properties['Shape_Length'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_World_Heritage_Property_ID_Annotations_28_0() {
+            return {
+                pane: 'pane_World_Heritage_Property_ID_Annotations_28',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,255,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_World_Heritage_Property_ID_Annotations_28');
+        map.getPane('pane_World_Heritage_Property_ID_Annotations_28').style.zIndex = 428;
+        map.getPane('pane_World_Heritage_Property_ID_Annotations_28').style['mix-blend-mode'] = 'normal';
+        var layer_World_Heritage_Property_ID_Annotations_28 = new L.geoJson(json_World_Heritage_Property_ID_Annotations_28, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_World_Heritage_Property_ID_Annotations_28',
+            layerName: 'layer_World_Heritage_Property_ID_Annotations_28',
+            pane: 'pane_World_Heritage_Property_ID_Annotations_28',
+            onEachFeature: pop_World_Heritage_Property_ID_Annotations_28,
+            style: style_World_Heritage_Property_ID_Annotations_28_0,
+        });
+        bounds_group.addLayer(layer_World_Heritage_Property_ID_Annotations_28);
+        map.addLayer(layer_World_Heritage_Property_ID_Annotations_28);
+        function pop_Grid_Information_29(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['layer'] !== null ? autolinker.link(feature.properties['layer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['paperspace'] !== null ? autolinker.link(feature.properties['paperspace'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['subclasses'] !== null ? autolinker.link(feature.properties['subclasses'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['linetype'] !== null ? autolinker.link(feature.properties['linetype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['entityhand'] !== null ? autolinker.link(feature.properties['entityhand'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['text'] !== null ? autolinker.link(feature.properties['text'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Grid_Information_29_0() {
+            return {
+                fill: false,
+                stroke: false,
+                interactive: false
+            }
+        }
+        map.createPane('pane_Grid_Information_29');
+        map.getPane('pane_Grid_Information_29').style.zIndex = 429;
+        map.getPane('pane_Grid_Information_29').style['mix-blend-mode'] = 'normal';
+        var layer_Grid_Information_29 = new L.geoJson(json_Grid_Information_29, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_Grid_Information_29',
+            layerName: 'layer_Grid_Information_29',
+            pane: 'pane_Grid_Information_29',
+            onEachFeature: pop_Grid_Information_29,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Grid_Information_29_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Grid_Information_29);
+        map.addLayer(layer_Grid_Information_29);
+        function pop_Grid_30(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['objectid'] !== null ? autolinker.link(feature.properties['objectid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['entity'] !== null ? autolinker.link(feature.properties['entity'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['handle'] !== null ? autolinker.link(feature.properties['handle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['layer'] !== null ? autolinker.link(feature.properties['layer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrfrzn'] !== null ? autolinker.link(feature.properties['lyrfrzn'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrlock'] !== null ? autolinker.link(feature.properties['lyrlock'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyron'] !== null ? autolinker.link(feature.properties['lyron'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrvpfrzn'] !== null ? autolinker.link(feature.properties['lyrvpfrzn'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrhandle'] !== null ? autolinker.link(feature.properties['lyrhandle'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['color'] !== null ? autolinker.link(feature.properties['color'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['entcolor'] !== null ? autolinker.link(feature.properties['entcolor'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrcolor'] !== null ? autolinker.link(feature.properties['lyrcolor'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['blkcolor'] !== null ? autolinker.link(feature.properties['blkcolor'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['linetype'] !== null ? autolinker.link(feature.properties['linetype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['entlinetyp'] !== null ? autolinker.link(feature.properties['entlinetyp'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrlntype'] !== null ? autolinker.link(feature.properties['lyrlntype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['blklinetyp'] !== null ? autolinker.link(feature.properties['blklinetyp'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['elevation'] !== null ? autolinker.link(feature.properties['elevation'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['thickness'] !== null ? autolinker.link(feature.properties['thickness'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['linewt'] !== null ? autolinker.link(feature.properties['linewt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['entlinewt'] !== null ? autolinker.link(feature.properties['entlinewt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lyrlinewt'] !== null ? autolinker.link(feature.properties['lyrlinewt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['blklinewt'] !== null ? autolinker.link(feature.properties['blklinewt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['refname'] !== null ? autolinker.link(feature.properties['refname'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ltscale'] !== null ? autolinker.link(feature.properties['ltscale'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['extx'] !== null ? autolinker.link(feature.properties['extx'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['exty'] !== null ? autolinker.link(feature.properties['exty'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['extz'] !== null ? autolinker.link(feature.properties['extz'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['docname'] !== null ? autolinker.link(feature.properties['docname'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['docpath'] !== null ? autolinker.link(feature.properties['docpath'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['doctype'] !== null ? autolinker.link(feature.properties['doctype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['docver'] !== null ? autolinker.link(feature.properties['docver'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['shape_leng'] !== null ? autolinker.link(feature.properties['shape_leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Grid_30_0(feature) {
+            switch(String(feature.properties['Layer'])) {
+                case '0.1.1 Grid_1000meter':
+                    return {
+                pane: 'pane_Grid_30',
+                opacity: 1,
+                color: 'rgba(175,175,175,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case '0.3.1 Coverage Cataster_2005':
+                    return {
+                pane: 'pane_Grid_30',
+                opacity: 1,
+                color: 'rgba(225,167,127,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case '0.4.1 Coverage Cataster_2007':
+                    return {
+                pane: 'pane_Grid_30',
+                opacity: 1,
+                color: 'rgba(255,255,0,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Grid_30');
+        map.getPane('pane_Grid_30').style.zIndex = 430;
+        map.getPane('pane_Grid_30').style['mix-blend-mode'] = 'normal';
+        var layer_Grid_30 = new L.geoJson(json_Grid_30, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_Grid_30',
+            layerName: 'layer_Grid_30',
+            pane: 'pane_Grid_30',
+            onEachFeature: pop_Grid_30,
+            style: style_Grid_30_0,
+        });
+        bounds_group.addLayer(layer_Grid_30);
+        map.addLayer(layer_Grid_30);
+        var overlaysTree = [
+        {label: '<b>Grid</b>', selectAllCheckbox: true, children: [
+            {label: 'Grid<br /><table><tr><td style="text-align: center;"><img src="legend/Grid_30_Grid0.png" /></td><td>Grid</td></tr><tr><td style="text-align: center;"><img src="legend/Grid_30_MissionRWTHacdc20051.png" /></td><td>Mission RWTH acdc 2005</td></tr><tr><td style="text-align: center;"><img src="legend/Grid_30_MissionRWTHacdc20072.png" /></td><td>Mission RWTH acdc 2007</td></tr></table>', layer: layer_Grid_30},
+            {label: 'Grid_Information', layer: layer_Grid_Information_29},]},
+        {label: '<b>Annotations</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/World_Heritage_Property_ID_Annotations_28.png" /> World_Heritage_Property_ID_Annotations', layer: layer_World_Heritage_Property_ID_Annotations_28},
+            {label: 'World_Heritage_Property_Annotations', layer: layer_World_Heritage_Property_Annotations_27},
+            {label: 'Archaeological_Area_Annotations', layer: layer_Archaeological_Area_Annotations_26},
+            {label: 'National_Monument_Protection_Zone_Annotations', layer: layer_National_Monument_Protection_Zone_Annotations_25},
+            {label: 'Regulated_Development_Area_Annotation', layer: layer_Regulated_Development_Area_Annotation_24},]},
+        {label: '<b>World_Heritage_Site_Benchmarks</b>', selectAllCheckbox: true, children: [
+            {label: 'World_Heritage_Site_Benchmarks_Annotations', layer: layer_World_Heritage_Site_Benchmarks_Annotations_23},
+            {label: '<img src="legend/World_Heritage_Site_Benchmarks_22.png" /> World_Heritage_Site_Benchmarks', layer: layer_World_Heritage_Site_Benchmarks_22},]},
+        {label: '<b>zone1_World_Heritage_Protection_Zone</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/World_Heritage_Buffer_Area_21.png" /> World_Heritage_Buffer_Area', layer: layer_World_Heritage_Buffer_Area_21},
+            {label: '<img src="legend/World_Heritage_Buffer_Outline_20.png" /> World_Heritage_Buffer_Outline', layer: layer_World_Heritage_Buffer_Outline_20},
+            {label: '<img src="legend/World_Heritage_Property_Area_19.png" /> World_Heritage_Property_Area', layer: layer_World_Heritage_Property_Area_19},]},
+        {label: '<b>zone2_Archaeological_Heritage_Protection_Zone</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/Archaeological_Area_18.png" /> Archaeological_Area', layer: layer_Archaeological_Area_18},
+            {label: '<img src="legend/Archaeological_Remains_17.png" /> Archaeological_Remains', layer: layer_Archaeological_Remains_17},
+            {label: '<img src="legend/Caves_16.png" /> Caves', layer: layer_Caves_16},
+            {label: '<img src="legend/Historic_Cemetery_15.png" /> Historic_Cemetery', layer: layer_Historic_Cemetery_15},
+            {label: '<img src="legend/Historic_Mausoleums_14.png" /> Historic_Mausoleums', layer: layer_Historic_Mausoleums_14},]},
+        {label: '<b>zone3_National_Monument_Protection_Zone</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/Religious_Building_Points_13.png" /> Religious_Building_Points', layer: layer_Religious_Building_Points_13},
+            {label: '<img src="legend/Monument_Walls_12.png" /> Monument_Walls', layer: layer_Monument_Walls_12},
+            {label: '<img src="legend/Cemetery_11.png" /> Cemetery', layer: layer_Cemetery_11},
+            {label: '<img src="legend/Monuments_10.png" /> Monuments', layer: layer_Monuments_10},
+            {label: '<img src="legend/Religious_Buildings_9.png" /> Religious_Buildings', layer: layer_Religious_Buildings_9},
+            {label: '<img src="legend/Traditional_Settlements_8.png" /> Traditional_Settlements', layer: layer_Traditional_Settlements_8},]},
+        {label: '<b>zone4_Landscape_Protection_Zone</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/Canals_7.png" /> Canals', layer: layer_Canals_7},
+            {label: '<img src="legend/Rivers_6.png" /> Rivers', layer: layer_Rivers_6},
+            {label: '<img src="legend/Afforestation_Area_5.png" /> Afforestation_Area', layer: layer_Afforestation_Area_5},
+            {label: '<img src="legend/Natural_Hazard_Flood_Area_4.png" /> Natural_Hazard_Flood_Area', layer: layer_Natural_Hazard_Flood_Area_4},
+            {label: '<img src="legend/Pasture_Protection_Area_3.png" /> Pasture_Protection_Area', layer: layer_Pasture_Protection_Area_3},]},
+        {label: '<b>zone5_Regulated_Development_Zone</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/Public_Development_Area_2.png" /> Public_Development_Area', layer: layer_Public_Development_Area_2},
+            {label: '<img src="legend/Restricted_Development_Area_1.png" /> Restricted_Development_Area', layer: layer_Restricted_Development_Area_1},
+            {label: '<img src="legend/Urban_Development_Area_0.png" /> Urban_Development_Area', layer: layer_Urban_Development_Area_0},]},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var i = 0;
+        layer_World_Heritage_Site_Benchmarks_Annotations_23.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #323232; font-size: 3pt; font-family: \'MS Shell Dlg 2\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_World_Heritage_Site_Benchmarks_Annotations_23'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_Regulated_Development_Area_Annotation_24.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #000000; font-size: 3pt; font-family: \'MS Shell Dlg 2\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Regulated_Development_Area_Annotation_24'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_National_Monument_Protection_Zone_Annotations_25.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #ff8003; font-size: 3pt; font-family: \'MS Shell Dlg 2\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_National_Monument_Protection_Zone_Annotations_25'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_Archaeological_Area_Annotations_26.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #2c84ff; font-size: 3pt; font-family: \'MS Shell Dlg 2\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Archaeological_Area_Annotations_26'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_World_Heritage_Property_Annotations_27.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #de0000; font-size: 3pt; font-family: \'MS Shell Dlg 2\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_World_Heritage_Property_Annotations_27'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_World_Heritage_Property_ID_Annotations_28.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['TextString'] !== null?String('<div style="color: #ff0000; font-size: 30pt; font-weight: bold; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['TextString']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_World_Heritage_Property_ID_Annotations_28'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        resetLabels([layer_World_Heritage_Site_Benchmarks_Annotations_23,layer_Regulated_Development_Area_Annotation_24,layer_National_Monument_Protection_Zone_Annotations_25,layer_Archaeological_Area_Annotations_26,layer_World_Heritage_Property_Annotations_27,layer_World_Heritage_Property_ID_Annotations_28]);
+        map.on("zoomend", function(){
+            resetLabels([layer_World_Heritage_Site_Benchmarks_Annotations_23,layer_Regulated_Development_Area_Annotation_24,layer_National_Monument_Protection_Zone_Annotations_25,layer_Archaeological_Area_Annotations_26,layer_World_Heritage_Property_Annotations_27,layer_World_Heritage_Property_ID_Annotations_28]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_World_Heritage_Site_Benchmarks_Annotations_23,layer_Regulated_Development_Area_Annotation_24,layer_National_Monument_Protection_Zone_Annotations_25,layer_Archaeological_Area_Annotations_26,layer_World_Heritage_Property_Annotations_27,layer_World_Heritage_Property_ID_Annotations_28]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_World_Heritage_Site_Benchmarks_Annotations_23,layer_Regulated_Development_Area_Annotation_24,layer_National_Monument_Protection_Zone_Annotations_25,layer_Archaeological_Area_Annotations_26,layer_World_Heritage_Property_Annotations_27,layer_World_Heritage_Property_ID_Annotations_28]);
+        });
+        </script>
+    </body>
+</html>
